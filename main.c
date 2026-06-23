@@ -17,6 +17,14 @@
 #define DEFAULT_CSV_FILE "AlgorithmData.csv"
 #define PATH_MAX_LEN 1024
 
+static void clear_screen(void);
+
+
+static void clear_screen(void) {
+    printf("\033[2J\033[H");
+    fflush(stdout);
+}
+
 static void copy_text(char *dst, size_t dstSize, const char *src) {
   if (dst == NULL || dstSize == 0)
     return;
@@ -566,8 +574,7 @@ static void adjust_available_time(Scenario scenarios[], int scenarioCount) {
          value);
 }
 
-/* 前向声明：plan_study 在 menu_loop 中调用，实现在文件末尾 */
-static void plan_study(void);
+static void plan_study();
 
 static void print_ai_rules(void) {
   printf("\nManual Decision Tree Rules (2 features, 2 levels)\n");
@@ -627,9 +634,7 @@ static void menu_loop(Scenario scenarios[], int scenarioCount) {
   }
 }
 
-/* ----------------------------------------------------------------
- * read_text_line: 读取一行用户输入的文本，自动去除首尾空白
- * ---------------------------------------------------------------- */
+
 static void read_text_line(const char *prompt, char *buffer, size_t bufferSize) {
   printf("%s", prompt);
   fflush(stdout);
@@ -640,20 +645,10 @@ static void read_text_line(const char *prompt, char *buffer, size_t bufferSize) 
   trim_text(buffer);
 }
 
-/* ----------------------------------------------------------------
- * plan_study: 交互式读取用户的学习任务
- *   1. 询问任务数量
- *   2. 逐任务读取：Name, Estimated Study Time, Importance, Deadline,
- *      Difficulty, Task Type
- *   3. 读取可用学习时间
- *   4. 输出任务表并运行多策略对比（同 option 2 的输出格式）
- * ---------------------------------------------------------------- */
-static void plan_study(void) {
-  printf("\n========================================\n");
-  printf("     Plan Your Study Time!\n");
-  printf("========================================\n\n");
 
-  // --- 第1步：询问用户有多少个学习任务 ---
+static void plan_study(void) {
+  printf("     Plan Your Study Time!\n");
+
   int taskCount = read_int_line("How many of study tasks? ");
   if (taskCount <= 0) {
     printf("Invalid number of tasks. Returning to menu.\n");
@@ -665,7 +660,6 @@ static void plan_study(void) {
     taskCount = SS_MAX_TASKS;
   }
 
-  // --- 第2步：逐个读取任务信息，构建 Scenario ---
   Scenario scenario;
   memset(&scenario, 0, sizeof(Scenario));
   copy_text(scenario.name, sizeof(scenario.name), "User Planned Study");
@@ -675,37 +669,32 @@ static void plan_study(void) {
     Task *task = &scenario.tasks[i];
     char prompt[128];
 
-    task->id = i + 1;  // 任务 ID 从 1 开始
+    task->id = i + 1;  // Index starts at 1
 
-    // 任务名称
+
     snprintf(prompt, sizeof(prompt), "T%d Name: ", i + 1);
     read_text_line(prompt, task->name, sizeof(task->name));
     if (task->name[0] == '\0') {
       snprintf(task->name, sizeof(task->name), "Task %d", i + 1);
     }
 
-    // 预计学习时间（小时）
     snprintf(prompt, sizeof(prompt), "T%d Estimated Study Time (hours): ",
              i + 1);
     task->studyTime = read_int_line(prompt);
     if (task->studyTime < 0) task->studyTime = 0;
 
-    // 重要性评分 (1-10)
     snprintf(prompt, sizeof(prompt), "T%d Importance (1-10): ", i + 1);
     task->importance = read_int_line(prompt);
     if (task->importance < 0) task->importance = 0;
 
-    // 截止日期（天）
     snprintf(prompt, sizeof(prompt), "T%d Deadline (days): ", i + 1);
     task->deadline = read_int_line(prompt);
     if (task->deadline < 0) task->deadline = 0;
 
-    // 难度 (1-5)
     snprintf(prompt, sizeof(prompt), "T%d Difficulty (1-5): ", i + 1);
     task->difficulty = read_int_line(prompt);
     if (task->difficulty < 0) task->difficulty = 0;
 
-    // 任务类型
     snprintf(prompt, sizeof(prompt),
              "T%d Task Type (Revision/Assignment/Tutorial/Practice): ", i + 1);
     read_text_line(prompt, task->taskType, sizeof(task->taskType));
@@ -713,10 +702,9 @@ static void plan_study(void) {
       copy_text(task->taskType, sizeof(task->taskType), "General");
     }
 
-    putchar('\n');  // 任务之间空一行，阅读更清晰
+    putchar('\n');  
   }
 
-  // --- 第3步：读取用户可用学习时间 ---
   int totalRequired = scenario_total_required_time(&scenario);
   printf("Total required study time: %d hours\n", totalRequired);
   int availableTime =
