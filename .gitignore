@@ -1,0 +1,19 @@
+# Compiled binaries
+main
+study_smart
+*.exe
+*.out
+a.out
+*.o
+
+.DS_Store
+
+*.dSYM/
+
+CST207-Code/
+
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
