@@ -17,14 +17,6 @@
 #define DEFAULT_CSV_FILE "AlgorithmData.csv"
 #define PATH_MAX_LEN 1024
 
-static void clear_screen(void);
-
-
-static void clear_screen(void) {
-    printf("\033[2J\033[H");
-    fflush(stdout);
-}
-
 static void copy_text(char *dst, size_t dstSize, const char *src) {
   if (dst == NULL || dstSize == 0)
     return;
@@ -348,6 +340,18 @@ static void print_task_table(const Scenario *scenario) {
   print_rule(widths, 8);
 }
 
+static void print_all_scenario_details(const Scenario scenarios[],
+                                       int scenarioCount) {
+  printf("\nScenario Details\n");
+  for (int i = 0; i < scenarioCount; i++) {
+    printf("\n%s\n", scenarios[i].name);
+    printf("Available study time: %d hours\n", scenarios[i].availableTime);
+    printf("Total required time:  %d hours\n",
+           scenario_total_required_time(&scenarios[i]));
+    print_task_table(&scenarios[i]);
+  }
+}
+
 static void execute_strategy_plain(const Scenario *scenario,
                                    StrategyType strategy,
                                    AlgorithmResult *result) {
@@ -574,7 +578,7 @@ static void adjust_available_time(Scenario scenarios[], int scenarioCount) {
          value);
 }
 
-static void plan_study();
+static void plan_study(void);
 
 static void print_ai_rules(void) {
   printf("\nManual Decision Tree Rules (2 features, 2 levels)\n");
@@ -605,6 +609,7 @@ static void menu_loop(Scenario scenarios[], int scenarioCount) {
     switch (choice) {
     case 1:
       print_scenario_list(scenarios, scenarioCount);
+      print_all_scenario_details(scenarios, scenarioCount);
       break;
     case 2: {
       int index = choose_scenario_index(scenarios, scenarioCount);
