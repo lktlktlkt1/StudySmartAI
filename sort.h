@@ -68,14 +68,21 @@ static void ss_sort_merge(Task tasks[], Task temp[], int left, int mid,
 static void ss_sort_merge_sort_range(Task tasks[], Task temp[], int left,
                                      int right)
 {
+  /* Base case: a range with zero or one task is already sorted. */
   if (left >= right)
   {
     return;
   }
 
+  /* Find the middle position to split the task range into two halves. */
   int mid = left + (right - left) / 2;
+
+  /* Recursively sort the left half. */
   ss_sort_merge_sort_range(tasks, temp, left, mid);
+  /* Recursively sort the right half. */
   ss_sort_merge_sort_range(tasks, temp, mid + 1, right);
+
+  /* Merge the two sorted halves into one sorted range. */
   ss_sort_merge(tasks, temp, left, mid, right);
 }
 
