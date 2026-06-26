@@ -28,6 +28,7 @@ static void ss_sort_merge(Task tasks[], Task temp[], int left, int mid,
   /* Compare the front task of each sorted half and copy the one that should appear earlier in the ranking. */
   while (i <= mid && j <= right)
   {
+    /* Choose the task that should appear earlier according to the priority rule. */
     if (ss_task_priority_cmp(&tasks[i], &tasks[j]) <= 0)
     {
       temp[k++] = tasks[i++];
