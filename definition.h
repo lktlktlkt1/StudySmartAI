@@ -12,6 +12,7 @@
 #define SS_MAX_SCENARIO_LEN 96
 #define SS_MAX_TIME_CAPACITY 1000
 
+/* Planning strategies */
 typedef enum StrategyType {
   STRATEGY_SORTING = 0,
   STRATEGY_GREEDY,
@@ -20,6 +21,7 @@ typedef enum StrategyType {
   STRATEGY_BACKTRACKING
 } StrategyType;
 
+/* Task: loaded from CSV or entered by the user. */
 typedef struct Task {
   int id;
   char name[SS_MAX_NAME_LEN];
@@ -30,6 +32,7 @@ typedef struct Task {
   char taskType[SS_MAX_TYPE_LEN];
 } Task;
 
+/* Scenario = Tasks + Available Study Time. */
 typedef struct Scenario {
   char name[SS_MAX_SCENARIO_LEN];
   Task tasks[SS_MAX_TASKS];
@@ -37,6 +40,7 @@ typedef struct Scenario {
   int availableTime;
 } Scenario;
 
+/* AI features extracted from a scenario. */
 typedef struct ScenarioFeatures {
   int numTasks;
   int totalRequiredTime;
@@ -47,6 +51,7 @@ typedef struct ScenarioFeatures {
   int importanceVariation;
 } ScenarioFeatures;
 
+/* Output format */
 typedef struct AlgorithmResult {
   StrategyType strategy;
   StrategyType recommendedStrategy;
@@ -60,6 +65,7 @@ typedef struct AlgorithmResult {
   ScenarioFeatures features;
 } AlgorithmResult;
 
+/* Convert enum values to readable names for the console tables. */
 static const char *ss_strategy_name(StrategyType strategy) {
   switch (strategy) {
   case STRATEGY_SORTING:
@@ -84,6 +90,7 @@ static double ss_task_ratio(const Task *task) {
   return (double)task->importance / (double)task->studyTime;
 }
 
+/* Priority rule for Sorting and Greedy Selection is Imp/time ratio. */
 static int ss_task_priority_cmp(const Task *left, const Task *right) {
   double leftRatio = ss_task_ratio(left);
   double rightRatio = ss_task_ratio(right);
@@ -109,6 +116,7 @@ static int ss_task_priority_cmp(const Task *left, const Task *right) {
   return 0;
 }
 
+/* Reset the result */
 static void ss_result_init(AlgorithmResult *result, StrategyType strategy) {
   if (result == NULL) {
     return;
@@ -118,6 +126,7 @@ static void ss_result_init(AlgorithmResult *result, StrategyType strategy) {
   result->recommendedStrategy = strategy;
 }
 
+/* Append a selected task and update aggregate totals. */
 static void ss_result_add_selected(AlgorithmResult *result, const Task *task) {
   if (result == NULL || task == NULL || result->selectedCount >= SS_MAX_TASKS) {
     return;

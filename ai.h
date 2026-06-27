@@ -3,10 +3,12 @@
 
 #include "definition.h"
 
+/* Extract compact numeric features used by the recommendation rules. */
 static ScenarioFeatures ss_ai_extract_features(const Scenario *scenario) {
   ScenarioFeatures features;
   memset(&features, 0, sizeof(features));
 
+  /* Empty input returns all-zero features. */
   if (scenario == NULL || scenario->taskCount <= 0) {
     return features;
   }
@@ -25,6 +27,7 @@ static ScenarioFeatures ss_ai_extract_features(const Scenario *scenario) {
     features.totalRequiredTime += task->studyTime;
     totalImportance += task->importance;
 
+    /* A task due within 3 days is treated as urgent to calculate Deadline Tightness.*/
     if (task->deadline <= 3) {
       urgentCount++;
     }
@@ -36,6 +39,7 @@ static ScenarioFeatures ss_ai_extract_features(const Scenario *scenario) {
     }
   }
 
+  /* Store ratios as percentages to keep the AI module integer-only. */
   features.timePressureRatio =
       (features.totalRequiredTime * 100) / features.availableTime;
   features.averageImportance =
@@ -46,6 +50,7 @@ static ScenarioFeatures ss_ai_extract_features(const Scenario *scenario) {
   return features;
 }
 
+/* Predict the planning strategy with a small rule-based decision tree. */
 static StrategyType ss_ai_predict_strategy(const ScenarioFeatures *features) {
   if (features == NULL) {
     return STRATEGY_DP;

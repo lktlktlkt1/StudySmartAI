@@ -3,6 +3,7 @@
 
 #include "definition.h"
 
+/* State used while exploring all task choices. */
 typedef struct BacktrackingContext {
   const Scenario *scenario;
   bool current[SS_MAX_TASKS];
@@ -11,6 +12,7 @@ typedef struct BacktrackingContext {
   int bestTime;
 } BacktrackingContext;
 
+/* Keep the subset with higher importance; tie-break by lower study time. */
 static void ss_bt_save_best(BacktrackingContext *ctx, int currentImportance,
                             int currentTime) {
   if (currentImportance > ctx->bestImportance ||
@@ -23,6 +25,8 @@ static void ss_bt_save_best(BacktrackingContext *ctx, int currentImportance,
   }
 }
 
+/* Try both choices for each task: skip it or take it if time allows. 
+ All tasks have been decided, so evaluate this subset. */
 static void ss_bt_search(BacktrackingContext *ctx, int index, int currentTime,
                          int currentImportance) {
   if (index == ctx->scenario->taskCount) {
@@ -42,6 +46,7 @@ static void ss_bt_search(BacktrackingContext *ctx, int index, int currentTime,
   }
 }
 
+/* Run exhaustive search and copy the best subset into AlgorithmResult. */
 static void ss_backtracking_run(const Scenario *scenario,
                                 AlgorithmResult *result) {
   ss_result_init(result, STRATEGY_BACKTRACKING);
@@ -53,6 +58,7 @@ static void ss_backtracking_run(const Scenario *scenario,
   ctx.scenario = scenario;
   ctx.bestTime = scenario->availableTime + 1;
 
+  /* Start with no selected tasks and zero total time/importance ratio. */
   ss_bt_search(&ctx, 0, 0, 0);
 
   for (int i = 0; i < scenario->taskCount; i++) {

@@ -17,6 +17,7 @@
 #define DEFAULT_CSV_FILE "AlgorithmData.csv"
 #define PATH_MAX_LEN 1024
 
+/* Safe string copy used throughout the console output and CSV loader. */
 static void copy_text(char *dst, size_t dstSize, const char *src) {
   if (dst == NULL || dstSize == 0)
     return;
@@ -28,6 +29,7 @@ static void copy_text(char *dst, size_t dstSize, const char *src) {
   snprintf(dst, dstSize, "%s", src);
 }
 
+/* Remove BOM, tabs, spaces and line endings around a field. */
 static void trim_text(char *text) {
   if (text == NULL || text[0] == '\0')
     return;
@@ -87,6 +89,7 @@ static bool text_contains_ci(const char *text, const char *needle) {
   return false;
 }
 
+/* Parse one CSV row, including quoted fields and escaped quotes. */
 static int parse_csv_line(const char *line, char fields[][CSV_MAX_FIELD_LEN],
                           int maxFields) {
   int fieldIndex = 0;
@@ -135,6 +138,7 @@ static int parse_int_field(const char *text) {
   return (int)strtol(text, NULL, 10);
 }
 
+/* Preset time budgets for the three required project scenarios. */
 static int infer_available_time_from_name(const char *scenarioName) {
   if (text_contains_ci(scenarioName, "low-pressure") ||
       text_contains_ci(scenarioName, "low pressure"))
@@ -147,6 +151,7 @@ static int infer_available_time_from_name(const char *scenarioName) {
   return 0;
 }
 
+/* Sum all task durations in one scenario. */
 static int scenario_total_required_time(const Scenario *scenario) {
   int total = 0;
   for (int i = 0; i < scenario->taskCount; i++)
@@ -155,6 +160,7 @@ static int scenario_total_required_time(const Scenario *scenario) {
   return total;
 }
 
+/* Fill missing time budgets with 60% of total required time. */
 static void finalize_scenarios(Scenario scenarios[], int scenarioCount) {
   for (int i = 0; i < scenarioCount; i++) {
     if (scenarios[i].availableTime <= 0) {
@@ -166,6 +172,7 @@ static void finalize_scenarios(Scenario scenarios[], int scenarioCount) {
   }
 }
 
+/* Load scenario names and tasks from the CSV dataset. */
 static bool load_scenarios_from_csv(const char *csvPath, Scenario scenarios[],
                                     int *outScenarioCount, char *error,
                                     size_t errorSize) {
@@ -188,6 +195,7 @@ static bool load_scenarios_from_csv(const char *csvPath, Scenario scenarios[],
     if (lineNumber == 1 || text_equals_ci(fields[1], "Task ID"))
       continue;
 
+    /* A non-empty first column starts a new scenario. */
     if (fields[0][0] != '\0') {
       if (scenarioCount >= SS_MAX_SCENARIOS)
         break;
@@ -208,6 +216,7 @@ static bool load_scenarios_from_csv(const char *csvPath, Scenario scenarios[],
     if (scenario->taskCount >= SS_MAX_TASKS)
       continue;
 
+    /* Remaining columns become one Task record. */
     Task *task = &scenario->tasks[scenario->taskCount++];
     task->id = parse_int_field(fields[1]);
     copy_text(task->name, sizeof(task->name), fields[2]);
@@ -231,6 +240,7 @@ static bool load_scenarios_from_csv(const char *csvPath, Scenario scenarios[],
   return true;
 }
 
+/* Draw a simple ASCII table border. */
 static void print_rule(const int widths[], int count) {
   putchar('+');
   for (int i = 0; i < count; i++) {
@@ -242,6 +252,7 @@ static void print_rule(const int widths[], int count) {
   putchar('\n');
 }
 
+/* Print one row and shorten cells that are too long for the table. */
 static void print_row(const char *cols[], const int widths[], int count) {
   putchar('|');
   for (int i = 0; i < count; i++) {
@@ -260,6 +271,7 @@ static void print_row(const char *cols[], const int widths[], int count) {
   putchar('\n');
 }
 
+/* Convert selected tasks into a compact ID list, for example "T1 T3". */
 static void format_selected_ids(const AlgorithmResult *result, char *buffer,
                                 size_t bufferSize) {
   buffer[0] = '\0';
@@ -280,6 +292,7 @@ static void format_selected_ids(const AlgorithmResult *result, char *buffer,
   }
 }
 
+/* Print the scenario overview used by menu options. */
 static void print_scenario_list(const Scenario scenarios[], int scenarioCount) {
   const int widths[] = {4, 42, 7, 10, 10};
   const char *header[] = {"No.", "Scenario", "Tasks", "Required", "Available"};
@@ -307,6 +320,7 @@ static void print_scenario_list(const Scenario scenarios[], int scenarioCount) {
   print_rule(widths, 5);
 }
 
+/* Print all task attributes for a single scenario. */
 static void print_task_table(const Scenario *scenario) {
   const int widths[] = {4, 42, 5, 5, 8, 6, 11, 6};
   const char *header[] = {"ID",       "Task", "Time", "Imp",
@@ -340,6 +354,7 @@ static void print_task_table(const Scenario *scenario) {
   print_rule(widths, 8);
 }
 
+/* Menu option 1: show the summary plus every scenario's task table. */
 static void print_all_scenario_details(const Scenario scenarios[],
                                        int scenarioCount) {
   printf("\nScenario Details\n");
@@ -352,6 +367,7 @@ static void print_all_scenario_details(const Scenario scenarios[],
   }
 }
 
+/* Dispatch to the selected algorithm without timing wrapper logic. */
 static void execute_strategy_plain(const Scenario *scenario,
                                    StrategyType strategy,
                                    AlgorithmResult *result) {
@@ -374,6 +390,7 @@ static void execute_strategy_plain(const Scenario *scenario,
   }
 }
 
+/* Run one strategy and record execution time in milliseconds. */
 static AlgorithmResult run_strategy_timed(const Scenario *scenario,
                                           StrategyType strategy) {
   AlgorithmResult result;
@@ -382,6 +399,7 @@ static AlgorithmResult run_strategy_timed(const Scenario *scenario,
   if (strategy == STRATEGY_AI_RECOMMENDATION) {
     AlgorithmResult predictedResult;
 
+    /* AI first predicts a strategy, then reuses that strategy's result. */
     ss_result_init(&result, STRATEGY_AI_RECOMMENDATION);
     result.features = ss_ai_extract_features(scenario);
     result.recommendedStrategy = ss_ai_predict_strategy(&result.features);
@@ -404,6 +422,7 @@ static AlgorithmResult run_strategy_timed(const Scenario *scenario,
   return result;
 }
 
+/* Choose the best result by importance, then by lower time if tied. */
 static StrategyType choose_best_strategy(const AlgorithmResult results[],
                                          int count) {
   int best = 0;
@@ -417,6 +436,7 @@ static StrategyType choose_best_strategy(const AlgorithmResult results[],
   return results[best].strategy;
 }
 
+/* Short names keep AI comments readable inside the table. */
 static const char *short_strategy_name(StrategyType strategy) {
   switch (strategy) {
   case STRATEGY_SORTING:
@@ -434,6 +454,7 @@ static const char *short_strategy_name(StrategyType strategy) {
   }
 }
 
+/* Generate a one-line explanation for each algorithm result. */
 static void comment_for_result(const AlgorithmResult *result,
                                StrategyType actualBest, char *buffer,
                                size_t bufferSize) {
@@ -461,6 +482,7 @@ static void comment_for_result(const AlgorithmResult *result,
   }
 }
 
+/* Print the main performance comparison table. */
 static void print_performance_table(const AlgorithmResult results[],
                                     int resultCount, StrategyType actualBest) {
   const int widths[] = {24, 27, 10, 10, 10, 44};
@@ -497,6 +519,7 @@ static void print_performance_table(const AlgorithmResult results[],
   print_rule(widths, 6);
 }
 
+/* Run all strategies for one scenario and print comparison results. */
 static void run_comparison_for_scenario(const Scenario *scenario) {
   printf("\nScenario: %s\n", scenario->name);
   printf("Available study time: %d hours\n", scenario->availableTime);
@@ -511,6 +534,7 @@ static void run_comparison_for_scenario(const Scenario *scenario) {
   requiredResults[1] = run_strategy_timed(scenario, STRATEGY_GREEDY);
   requiredResults[2] = run_strategy_timed(scenario, STRATEGY_DP);
 
+  /* "Actual best" is based only on the three required strategies. */
   StrategyType actualBest = choose_best_strategy(requiredResults, 3);
   AlgorithmResult aiResult =
       run_strategy_timed(scenario, STRATEGY_AI_RECOMMENDATION);
@@ -537,6 +561,7 @@ static void run_comparison_for_scenario(const Scenario *scenario) {
          ss_strategy_name(aiResult.recommendedStrategy));
 }
 
+/* Read one integer from the user; blank input returns -1. */
 static int read_int_line(const char *prompt) {
   char line[64];
   printf("%s", prompt);
@@ -551,6 +576,7 @@ static int read_int_line(const char *prompt) {
   return (int)strtol(line, NULL, 10);
 }
 
+/* Ask the user to choose a scenario index from the overview table. */
 static int choose_scenario_index(const Scenario scenarios[],
                                  int scenarioCount) {
   print_scenario_list(scenarios, scenarioCount);
@@ -562,6 +588,7 @@ static int choose_scenario_index(const Scenario scenarios[],
   return choice - 1;
 }
 
+/* Let the user change the available study time of an existing scenario. */
 static void adjust_available_time(Scenario scenarios[], int scenarioCount) {
   int index = choose_scenario_index(scenarios, scenarioCount);
   if (index < 0)
@@ -580,6 +607,7 @@ static void adjust_available_time(Scenario scenarios[], int scenarioCount) {
 
 static void plan_study(void);
 
+/* Display the rule-based AI decision tree. */
 static void print_ai_rules(void) {
   printf("\nManual Decision Tree Rules (2 features, 2 levels)\n");
   printf("1. If time pressure < 150%%, "
@@ -590,6 +618,7 @@ static void print_ai_rules(void) {
          "(optimal selection under time limit).\n\n");
 }
 
+/* Main command menu. */
 static void print_menu(void) {
   printf("\nMain Menu\n");
   printf("1. List scenarios\n");
@@ -598,10 +627,10 @@ static void print_menu(void) {
   printf("4. Adjust scenario available time\n");
   printf("5. Show AI decision tree rules\n");
   printf("6. Plan your Study Time!\n");
-  //TODO
   printf("0. Exit\n");
 }
 
+/* Handle menu choices until the user exits. */
 static void menu_loop(Scenario scenarios[], int scenarioCount) {
   while (true) {
     print_menu();
@@ -640,6 +669,7 @@ static void menu_loop(Scenario scenarios[], int scenarioCount) {
 }
 
 
+/* Read one text field and trim surrounding whitespace. */
 static void read_text_line(const char *prompt, char *buffer, size_t bufferSize) {
   printf("%s", prompt);
   fflush(stdout);
@@ -651,6 +681,7 @@ static void read_text_line(const char *prompt, char *buffer, size_t bufferSize) 
 }
 
 
+/* Build a custom scenario from user input and compare all strategies. */
 static void plan_study(void) {
   printf("     Plan Your Study Time!\n");
 
@@ -674,7 +705,7 @@ static void plan_study(void) {
     Task *task = &scenario.tasks[i];
     char prompt[128];
 
-    task->id = i + 1;  // Index starts at 1
+    task->id = i + 1;
 
 
     snprintf(prompt, sizeof(prompt), "T%d Name: ", i + 1);
@@ -707,14 +738,14 @@ static void plan_study(void) {
       copy_text(task->taskType, sizeof(task->taskType), "General");
     }
 
-    putchar('\n');  
+    putchar('\n');
   }
 
   int totalRequired = scenario_total_required_time(&scenario);
   printf("Total required study time: %d hours\n", totalRequired);
-  int availableTime =
-      read_int_line("Your available study time (hours): "); //Default value is 60%
+  int availableTime = read_int_line("Your available study time (hours): ");
   if (availableTime <= 0) {
+    /* Default capacity keeps custom scenarios runnable even with blank input. */
     availableTime = (totalRequired * 60) / 100;
     if (availableTime <= 0) availableTime = 1;
     printf("Using default available time: %d hours (60%% of total)\n",
@@ -728,6 +759,8 @@ static void plan_study(void) {
 int main(int argc, char *argv[]) {
   (void)argc;
   char csvPath[PATH_MAX_LEN];
+
+  /* Load the CSV from the same directory as the executable. */
   const char *slash = strrchr(argv[0], '/');
   const char *backslash = strrchr(argv[0], '\\');
   if (backslash != NULL && (slash == NULL || backslash > slash))
@@ -752,7 +785,7 @@ int main(int argc, char *argv[]) {
 
   printf("\nStudySmart AI\n");
   printf("Sorting, greedy, DP, backtracking and AI recommendation.\n\n");
-  printf("Loaded %d scenario(s) from %s.\n", scenarioCount, csvPath);
+  printf("Loaded %d scenario from %s.\n", scenarioCount, csvPath);
   menu_loop(scenarios, scenarioCount);
   return EXIT_SUCCESS;
 }
